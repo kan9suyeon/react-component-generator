@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
@@ -12,6 +12,10 @@ beforeEach(() => {
       json: async () => ({ envKeys: { anthropic: false, google: false }, code: 'render(<p/>)' }),
     }),
   );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('App 상태 영속성', () => {
@@ -46,9 +50,27 @@ describe('App 상태 영속성', () => {
     const user = userEvent.setup();
     localStorage.setItem('rcg:apiKeys', JSON.stringify({ google: 'AIza-1' }));
     render(<App />);
-    await user.type(screen.getByRole('textbox', { name: '' }), '카드');
+    await user.type(screen.getByPlaceholderText(/고객 목록/), '카드');
     await user.click(screen.getByRole('button', { name: '컴포넌트 생성' }));
     await screen.findByText('카드', { selector: '.card-prompt' });
     expect(JSON.parse(localStorage.getItem('rcg:promptHistory')!)).toEqual(['카드']);
+  });
+
+  it('생성에 실패한 프롬프트는 히스토리에 저장하지 않는다', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('rcg:apiKeys', JSON.stringify({ google: 'AIza-1' }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) =>
+        url === '/api/config'
+          ? { ok: true, json: async () => ({ envKeys: { anthropic: false, google: false } }) }
+          : { ok: false, json: async () => ({ error: '실패' }) },
+      ),
+    );
+    render(<App />);
+    await user.type(screen.getByPlaceholderText(/고객 목록/), '카드');
+    await user.click(screen.getByRole('button', { name: '컴포넌트 생성' }));
+    await screen.findByRole('alert');
+    expect(JSON.parse(localStorage.getItem('rcg:promptHistory') ?? '[]')).toEqual([]);
   });
 });

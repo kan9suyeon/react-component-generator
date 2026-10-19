@@ -38,6 +38,14 @@ describe('reviveComponents', () => {
     expect(reviveComponents({ foo: 1 })).toEqual([]);
   });
 
+  it('createdAt이 null이거나 숫자인 항목은 버린다', () => {
+    const result = reviveComponents([
+      { id: '1', prompt: 'p', code: 'c', createdAt: null },
+      { id: '2', prompt: 'p', code: 'c', createdAt: 0 },
+    ]);
+    expect(result).toEqual([]);
+  });
+
   it('필드가 잘못된 항목은 버린다', () => {
     const iso = '2026-01-02T03:04:05.000Z';
     const result = reviveComponents([
@@ -56,6 +64,10 @@ describe('addToHistory', () => {
 
   it('중복 프롬프트는 맨 앞으로 옮기고 하나만 남긴다', () => {
     expect(addToHistory(['a', 'b'], 'b')).toEqual(['b', 'a']);
+  });
+
+  it('앞뒤 공백을 제거하고 저장하며 공백만 다른 항목은 중복으로 본다', () => {
+    expect(addToHistory(['a'], '  a  ')).toEqual(['a']);
   });
 
   it('최대 개수를 넘으면 오래된 것부터 버린다', () => {

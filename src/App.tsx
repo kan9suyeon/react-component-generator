@@ -45,8 +45,9 @@ function App() {
       alert(`${PROVIDER_CONFIG[provider].label} API 키를 입력하거나 .env에 설정해주세요.`);
       return;
     }
-    setPromptHistory((prev) => addToHistory(prev, prompt));
-    generate(prompt, apiKey || undefined, provider);
+    generate(prompt, apiKey || undefined, provider).then((ok) => {
+      if (ok) setPromptHistory((prev) => addToHistory(prev, prompt));
+    });
   };
 
   const activeProvider = PROVIDER_CONFIG[provider].label;

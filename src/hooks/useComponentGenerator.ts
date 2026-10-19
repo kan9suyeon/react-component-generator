@@ -7,21 +7,25 @@ interface UseComponentGeneratorReturn {
   components: GeneratedComponent[];
   isLoading: boolean;
   error: string | null;
-  generate: (prompt: string, apiKey: string | undefined, provider: Provider) => Promise<void>;
+  generate: (prompt: string, apiKey: string | undefined, provider: Provider) => Promise<boolean>;
   removeComponent: (id: string) => void;
   clearAll: () => void;
 }
+
+const MAX_COMPONENTS = 50;
+
+const reviveCapped = (raw: unknown) => reviveComponents(raw).slice(0, MAX_COMPONENTS);
 
 export function useComponentGenerator(): UseComponentGeneratorReturn {
   const [components, setComponents] = useLocalStorageState<GeneratedComponent[]>(
     'rcg:components',
     [],
-    reviveComponents,
+    reviveCapped,
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generate = useCallback(async (prompt: string, apiKey: string | undefined, provider: Provider) => {
+  const generate = useCallback(async (prompt: string, apiKey: string | undefined, provider: Provider): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
 
@@ -45,10 +49,12 @@ export function useComponentGenerator(): UseComponentGeneratorReturn {
         createdAt: new Date(),
       };
 
-      setComponents((prev) => [newComponent, ...prev]);
+      setComponents((prev) => [newComponent, ...prev].slice(0, MAX_COMPONENTS));
+      return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
+      return false;
     } finally {
       setIsLoading(false);
     }

@@ -27,7 +27,8 @@ export function reviveComponents(raw: unknown): GeneratedComponent[] {
       typeof item !== 'object' ||
       typeof item.id !== 'string' ||
       typeof item.prompt !== 'string' ||
-      typeof item.code !== 'string'
+      typeof item.code !== 'string' ||
+      typeof item.createdAt !== 'string'
     ) {
       return [];
     }
@@ -38,5 +39,6 @@ export function reviveComponents(raw: unknown): GeneratedComponent[] {
 }
 
 export function addToHistory(history: string[], prompt: string, max = 20): string[] {
-  return [prompt, ...history.filter((p) => p !== prompt)].slice(0, max);
+  const trimmed = prompt.trim();
+  return [trimmed, ...history.filter((p) => p !== trimmed)].slice(0, max);
 }

@@ -10,6 +10,7 @@ const saved = [
 beforeEach(() => {
   localStorage.clear();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('useComponentGenerator 영속성', () => {
@@ -37,5 +38,31 @@ describe('useComponentGenerator 영속성', () => {
     const { result } = renderHook(() => useComponentGenerator());
     act(() => result.current.clearAll());
     expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([]);
+  });
+
+  it('성공하면 true, 실패하면 false를 반환한다', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ code: 'render(<p/>)' }) })
+      .mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'bad' }) });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useComponentGenerator());
+    let ok1 = false;
+    let ok2 = true;
+    await act(async () => {
+      ok1 = await result.current.generate('a', undefined, 'google');
+    });
+    await act(async () => {
+      ok2 = await result.current.generate('b', undefined, 'google');
+    });
+    expect(ok1).toBe(true);
+    expect(ok2).toBe(false);
+  });
+
+  it('컴포넌트는 최대 50개까지만 보관한다', () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({ ...saved[0], id: String(i) }));
+    localStorage.setItem(KEY, JSON.stringify(many));
+    const { result } = renderHook(() => useComponentGenerator());
+    expect(result.current.components).toHaveLength(50);
   });
 });
